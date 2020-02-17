@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "byebug"
+require "zeitwerk"
+require "listen"
+
+
+$loader = Zeitwerk::Loader.new
+$loader.push_dir File.join(__dir__, "..", "lib")
+$loader.enable_reloading
+$loader.setup
+Listen.to(*$loader.root_dirs.keys) { $loader.reload }.start
+
+include Scruby::Helpers
+
+require "irb"
+IRB.start(__FILE__)

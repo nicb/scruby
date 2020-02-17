@@ -1,86 +1,75 @@
-require File.expand_path(File.dirname(__FILE__)) + "/helper"
+# include Scruby
+# include Ugens
 
-require "scruby/core_ext/delegator_array"
-require "scruby/control_name"
-require "scruby/env"
-require "scruby/ugens/ugen" 
-require "scruby/ugens/ugen_operations" 
-require "scruby/ugens/multi_out"
+# class Control
+#   class << self
+#     public :new
+#   end
+# end
 
-include Scruby
-include Ugens
+# RSpec.describe Control do
+#   before do
+#     sdef = double("SynthDef", children: [])
+#     allow(Ugen).to receive(:synthdef).and_return(sdef)
 
-class Control
-  class << self
-    public :new
-  end
-end
+#     @proxy = double(OutputProxy, instance_of_proxy?: true)
+#     allow(OutputProxy).to receive(:new).and_return(@proxy)
 
-describe Control do
-  before do
-    sdef = mock( 'SynthDef', :children => [] )
-    Ugen.stub!( :synthdef ).and_return( sdef )
+#     @names = Array.new(rand(3..9)) do |i|
+#       ControlName.new "control_#{i}", 1, :control, i
+#     end
 
-    @proxy = mock(OutputProxy, :instance_of_proxy? => true)
-    OutputProxy.stub!( :new ).and_return( @proxy )
+#     @proxies = Control.new(:audio, *@names)
+#     @control = sdef.children.first
+#   end
 
-    @names = Array.new( rand(7) + 3 ) do |i|
-      ControlName.new "control_#{i}", 1, :control, i
-    end
-    
-    @proxies = Control.new( :audio, *@names )
-    @control = sdef.children.first
-  end
+#   it "should return an array of proxies" do
+#     expect(@proxies).to be_a(DelegatorArray)
+#     expect(@proxies.size).to eq(@names.size)
+#   end
 
-  it "should return an array of proxies" do
-    @proxies.should be_a( DelegatorArray )
-    @proxies.should have( @names.size ).proxies
-  end
+#   it "should set channels" do
+#     expect(@control).to be_instance_of(Control)
+#     expect(@control.channels).to eq(@names.map{ @proxy })
+#   end
 
-  it "should set channels" do
-    @control.should be_instance_of( Control )
-    @control.channels.should == @names.map{ @proxy }
-  end
+#   it "should be added to synthdef" do
+#     expect(Ugen).to receive(:synthdef)
+#     Control.new(:audio, [])
+#   end
 
-  it "should be added to synthdef" do
-    Ugen.should_receive( :synthdef )
-    Control.new( :audio, [])
-  end
-  
-  it "should instantiate with #and_proxies_from" do
-    Control.should_receive(:new).with( :control, *@names )
-    Control.and_proxies_from( @names )
-  end
-  
-  it "should have index" do
-    @control.index.should == 0
-  end
-  
-end
+#   it "should instantiate with #and_proxies_from" do
+#     expect(Control).to receive(:new).with(:control, *@names)
+#     Control.and_proxies_from(@names)
+#   end
 
-describe OutputProxy do
-  
-  before do
-    @sdef = mock( 'sdef', :children => [] )
-    Ugen.stub!( :synthdef ).and_return( @sdef )
-    @name  = ControlName.new( "control", 1, :control, 0)
-    @names = [@name]
-    @output_index = 1
-  end
-  
-  it "should receive index from control" do
-    Control.and_proxies_from( @names ).first.index.should == 0
-    @sdef.children.first.index.should == 0
-  end
-  
-  it "should have empty inputs" do
-    OutputProxy.new( :audio, @name, @output_index, @name ).inputs.should == []
-  end
-  
-  it "should not be added to synthdef" do
-    Ugen.should_not_receive( :synthdef )
-    OutputProxy.new( :audio, @name, @output_index, @name )
-  end
-end
+#   it "should have index" do
+#     expect(@control.index).to eq(0)
+#   end
 
+# end
 
+# RSpec.describe OutputProxy do
+
+#   before do
+#     @sdef = double("sdef", children: [])
+#     allow(Ugen).to receive(:synthdef).and_return(@sdef)
+#     @name = ControlName.new("control", 1, :control, 0)
+#     @names = [ @name ]
+#     @output_index = 1
+#   end
+
+#   it "should receive index from control" do
+#     expect(Control.and_proxies_from(@names).first.index).to eq(0)
+#     expect(@sdef.children.first.index).to eq(0)
+#   end
+
+#   it "should have empty inputs" do
+#     expect(OutputProxy.new(:audio, @name, @output_index, @name).inputs).to eq([])
+#   end
+
+#   it "should not be added to synthdef" do
+#     expect(Ugen).not_to receive(:synthdef)
+#     OutputProxy.new(:audio, @name, @output_index, @name)
+#   end
+# end
