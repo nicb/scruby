@@ -11,3 +11,4 @@
 TAGS
 /.gtm/
 .ruby-*
+.rake_tasks*
