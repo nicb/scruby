@@ -6,43 +6,34 @@ module Scruby
   class Server
     include OSC
 
-    attr_reader :host, :port, :executable, :client, :message_queue
+    attr_reader :host, :port, :client, :message_queue, :process, :name
+    private :process
 
     def initialize(host: "127.0.0.1", port: 57_110)
       @host = host
       @port = port
       @message_queue = MessageQueue.new(self)
+      @client = OSC::Client.new(port, host)
+      @name = "scruby_server_#{object_id}"
     end
 
-    def boot(binary: "scsynth", **opts)
-      @executable = Executable.spawn(binary, **opts, **{ port: port })
+    def boot(**opts)
+      options = Options.new(**opts, **{ port: port })
 
-      message_queue.sync.then { continue_boot }
+      Sclang.main.spawn.value!.eval <<-SC
+        { var addr = NetAddr.new("#{options.address}", #{options.port});
+          ~#{name} = Server.new("#{name}", addr);
+          ~#{name}.boot;
+        }.value
+      SC
+
+      message_queue.sync.then { self }
     end
 
-    def client
-      @client ||= OSC::Client.new(port, host)
+    def dump_osc(code = 1)
+      send("/dumpOSC", code)
     end
 
-
-    def dump_osc(code)
-      send "/dumpOSC", code
-    end
-
-    def continue_boot
-      send "/g_new", 1
-    end
-
-    def stop
-      send "/g_freeAll", 0
-      send "/clearSched"
-      send "/g_new", 1
-    end
-    alias panic stop
-
-    def quit
-      send "/quit"
-    end
 
     # Sends an OSC command or +Message+ to the scsyth server.
     # E.g. +server.send('/dumpOSC', 1)+
@@ -65,66 +56,6 @@ module Scruby
         OSC::Message.new("/d_recv", OSC::Blob.new(synth_def.encode), 0)
 
       send OSC::Bundle.new(nil, message)
-    end
-
-    # def initialize(buffers: 1024,
-    #                host: "localhost",
-    #                port: 57_111,
-    #                control_buses: 4096,
-    #                audio_buses: 128,
-    #                audio_outputs: 8,
-    #                audio_inputs: 8)
-    #   @buffers = buffers
-    #   @host = host
-    #   @port = port
-    #   @control_buses = control_buses
-    #   @audio_buses = audio_buses
-    #   @audio_outputs = audio_outputs
-    #   @audio_inputs = audio_inputs
-    #   Bus.audio(self, audio_inputs)
-    #   Bus.audio(self, audio_outputs)
-    #   self.binary = binary
-    #   self.class.all << self
-    # end
-
-    # Allocates either buffer or bus indices, should be consecutive
-    def allocate(kind, *elements)
-      # collection = instance_variable_get "@#{kind}"
-      # elements.flatten!
-
-      # max_size = 2000 #@opts[kind]
-
-      # if collection.compact.size + elements.size > max_size
-      #   raise SCError, "No more indices available -- free some #{kind} before allocating more."
-      # end
-
-      # unless collection.index nil # just concat arrays if no nil item
-      #   return collection.concat(elements)
-      # end
-
-      # indices = []
-
-      # # find n number of consecutive nil indices
-      # collection.each_with_index do |item, index|
-      #   break if indices.size >= elements.size
-
-      #   if item.nil?
-      #     indices << index
-      #   else
-      #     indices.clear
-      #   end
-      # end
-
-      # if indices.size >= elements.size
-      #   collection[indices.first, elements.size] = elements
-      # elsif collection.size + elements.size <= max_size
-      #   collection.concat elements
-      # else
-      #   msg =
-      #     [ "No block of #{elements.size} consecutive",
-      #       "#{kind} indices is available." ]
-      #   raise SCError, msg.join(" ")
-      # end
     end
   end
 end

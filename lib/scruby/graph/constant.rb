@@ -17,6 +17,14 @@ module Scruby
       def inspect
         super(value: value)
       end
+
+      def print_name
+        value.to_s
+      end
+
+      def inputs
+        []
+      end
     end
   end
 end

@@ -4,29 +4,29 @@ module Scruby
 
     attr_reader :name, :root, :nodes, :controls, :constants
 
-    def initialize(root, name: nil, controls: {})
+    def initialize(root_ugen, name: nil, controls: {})
       @name = name
       @controls = controls.map &method(:build_control_with_name)
       @nodes = []
       @constants = []
-      @root = Node.build_root(root, self)
-    end
+      @root = Node.build_root(self, root_ugen)
 
-    def add_node(node)
-      nodes.push(node)
+      add_node @root
     end
 
     def add_constant(const)
-      return constants if constants.include?(const)
-      constants.push(const)
+      const.tap do
+        constants.push(const) unless constants.include?(const)
+      end
     end
 
-    def add_control(control)
-      node = nodes.find { |c| c.ugen.is_a?(Control) }
-      return node unless node.nil?
+    def add_control(control_name)
+      control_name.tap do
+        next if nodes.any? { |c| c.ugen.is_a?(Control) }
 
-      control = Control.new(rate: :control, control_names: controls)
-      Node.build(control, self)
+        control = Control.new(rate: :control, control_names: controls)
+        add_node Node.build(self, control)
+      end
     end
 
     def control_index(control)
@@ -50,7 +50,18 @@ module Scruby
       ].join
     end
 
+    def visualize
+      Visualize.print(root)
+    end
+
     private
+
+    def add_node(node)
+      return unless node.is_a?(Node)
+
+      node.inputs.each &method(:add_node)
+      nodes.push(node)
+    end
 
     def init_stream(def_count = 1)
       version = 2

@@ -21,8 +21,6 @@ require "eventmachine"
 require "yaml"
 
 
-# require_relative "core_ext/delegator_array"
-
 require_relative "scruby/version"
 require_relative "scruby/attributes"
 require_relative "scruby/equatable"
@@ -32,12 +30,14 @@ require_relative "scruby/env"
 
 
 require_relative "scruby/graph"
+require_relative "scruby/graph/visualize"
 require_relative "scruby/graph/node"
 require_relative "scruby/graph/constant"
 require_relative "scruby/graph/control_name"
 
 require_relative "scruby/ugen"
 require_relative "scruby/ugen/operations"
+require_relative "scruby/ugen/abstract_out"
 require_relative "scruby/ugen/base"
 require_relative "scruby/ugen/binary_op_ugen"
 require_relative "scruby/ugen/unary_op_ugen"
@@ -420,8 +420,10 @@ require_relative "scruby/ugen/zero_crossing"
 require_relative "scruby/ugen/replace_out"
 
 require_relative "scruby/server"
-require_relative "scruby/server/executable/options"
-require_relative "scruby/server/executable"
+require_relative "scruby/server/options"
+
+require_relative "scruby/process"
+require_relative "scruby/process/registry"
 
 
 require_relative "scruby/synth_def"
