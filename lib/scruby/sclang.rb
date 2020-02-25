@@ -35,15 +35,12 @@ module Scruby
     end
 
     def eval(code)
-      async_eval(code).value!
+      eval_async(code).value!
     end
 
-    def async_eval(code)
-      true while process.read
-
+    def eval_async(code)
       Promises.future do
-        process.stdin_puts "(#{code}).postcs \e"
-        process.read.to_s.strip
+        process.puts_gets("(#{code}).postcs \e")&.strip
       end
     end
 
