@@ -3,25 +3,26 @@ require "forwardable"
 
 module Scruby
   class Graph
-    class Node
+    class UgenNode
       extend Forwardable
 
       include Encode
       include Equatable
       include PrettyInspectable
 
-      def_delegators :ugen, :name, :rate_index, :channels_count,
-                     :output_specs
+      def_delegators :ugen, :name, :rate, :rate_index, :channels_count,
+                     :special_index, :output_specs
 
 
       attr_reader :ugen, :inputs, :graph
 
-      def initialize(ugen, inputs, graph)
-        @ugen = ugen
+      def initialize(graph, ugen, inputs)
         @graph = graph
-        @inputs = inputs.map &method(:map_constant) >>
-                              method(:map_control_name) >>
-                              method(:add_control)
+        @ugen = ugen
+        @inputs = inputs.flat_map &method(:map_constant) >>
+                                   method(:map_special_input) >>
+                                   method(:map_control_name) >>
+                                   method(:add_control)
       end
 
       def encode
@@ -37,7 +38,7 @@ module Scruby
       end
 
       def nodes
-        inputs.select { |i| i.is_a?(Node) }
+        inputs.select { |i| i.is_a?(UgenNode) }
       end
 
       def constants
@@ -57,7 +58,7 @@ module Scruby
       end
 
       def print_name
-        name
+        "#{name}(#{rate})"
       end
 
       private
@@ -67,10 +68,14 @@ module Scruby
         Constant.new(elem).tap { |const| graph.add_constant(const) }
       end
 
+      def map_special_input(elem)
+        return elem unless elem.is_a?(Env)
+        elem.encode.map &method(:map_constant)
+      end
+
       def map_control_name(name)
         return name unless [ String, Symbol ]
                               .any? { |t| name.is_a?(t) }
-
         graph.control_name(name)
       end
 
@@ -80,11 +85,10 @@ module Scruby
       end
 
       def output_index; 0 end
-      def special_index; 0 end
 
       class << self
         def build_root(graph, ugen)
-          new(ugen, map_inputs(graph, ugen.input_values).flatten, graph)
+          new(graph, ugen, map_inputs(graph, ugen.input_values).flatten)
         end
 
         def build(graph, ugen)
@@ -93,19 +97,21 @@ module Scruby
 
         private
 
-        def do_build(graph, ugen, inputs)
-          inputs = map_inputs(graph, inputs)
+        def do_build(graph, ugen, raw_inputs)
+          inputs = map_inputs(graph, raw_inputs)
 
           unless inputs.any? { |i| i.is_a?(Array) }
-            return new(ugen, inputs, graph)
+            return new(graph, ugen, inputs)
           end
 
+          array_inputs(inputs).map { |ins| do_build(graph, ugen, ins) }
+        end
+
+        def array_inputs(inputs)
           wrapped = inputs.map { |elem| [ *elem ] }
           max_size = wrapped.max_by(&:size).size
 
-          wrapped.map { |elem| elem.cycle.take(max_size) }
-            .transpose
-            .map { |inputs| do_build(graph, ugen, inputs) }
+          wrapped.map { |elem| elem.cycle.take(max_size) }.transpose
         end
 
         def map_inputs(graph, inputs)

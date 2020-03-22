@@ -245,8 +245,7 @@ RSpec.describe Ugen::Base do
     it { expect(instance).not_to eq instance.freq(220) }
   end
 
-
-  describe "building graph" do
+  shared_context "simple ugen with graph" do
     subject(:subclass) do
       Class.new(Ugen::Base) do
         rates :audio, :control
@@ -257,19 +256,31 @@ RSpec.describe Ugen::Base do
     let(:instance) { subclass.ar }
     let(:graph) { instance_double("Graph") }
     let(:server) { instance_double("Server") }
-    let(:args) do
-      { a: "simple", b: "something" }
-    end
-
-    it "builds a graph" do
-      allow(Graph).to receive(:new).with(instance, args) { graph }
-      expect(instance.build_graph(**args)).to eq graph
-    end
-
-    it "plays" do
-      allow(Graph).to receive(:new).with(instance) { graph }
-      expect(graph).to receive(:play).with(server, args) { graph }
-      expect(instance.play(server, args)).to eq graph
-    end
   end
+
+
+  describe ".build_graph" do
+    include_context "simple ugen with graph"
+
+    before do
+      allow(Graph).to receive(:new).with(instance, a: 1, b: 2) { graph }
+    end
+
+    it { expect(instance.build_graph(a: 1, b: 2)).to eq graph }
+  end
+
+  # describe ".demo" do
+  #   include_context "simple ugen with graph"
+
+  #   before do
+  #     allow(Graph).to receive(:new).with(instance) { graph }
+  #   end
+
+  #   let(:demo_args) { { duration: 1 } }
+
+  #   it "demo" do
+  #     expect(graph).to receive(:demo).with(**demo_args) { graph }
+  #     expect(instance.demo(server, demo_args)).to eq graph
+  #   end
+  # end
 end

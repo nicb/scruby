@@ -6,6 +6,8 @@ module Scruby
   class Server
     include OSC
     include Sclang::Helpers
+    include PrettyInspectable
+    include Encode
 
     attr_reader :host, :port, :client, :message_queue, :process, :name
     private :process
@@ -65,17 +67,31 @@ module Scruby
     end
 
     def send_bundle(*messages, timestamp: nil)
-      bundle = messages.map{ |msg| Message.new(*msg) }
+      bundle = messages.map do |msg|
+        msg.is_a?(Message) ? msg : Message.new(*msg)
+      end
+
       send_msg Bundle.new(timestamp, *bundle)
     end
 
-    # Encodes and sends a SynthDef to the scsynth server
-    def send_synth_def(graph)
-      blob = Blob.new(graph)
-      send_msg Bundle.new(nil, Message.new("/d_recv", blob, 0))
+    # Encodes and sends a synth graph to the scsynth server
+    def send_graph(graph, completion_message = nil)
+      blob = Blob.new(graph.encode)
+      on_completion = graph_completion_blob(completion_message)
+
+      send_bundle Message.new("/d_recv", blob, on_completion)
+    end
+
+    def inspect
+      super(host: host, port: port)
     end
 
     private
+
+    def graph_completion_blob(message)
+      return message || 0 unless message.is_a? Message
+      Blob.new(message.encode)
+    end
 
     def eval_async(code)
       Sclang.main.eval_async(code)

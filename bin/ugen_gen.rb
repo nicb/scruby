@@ -47,9 +47,14 @@ data.each do |name, specs|
 module Scruby
   module Ugen
     class <%= name.sub("_", "") %> < Base
+      <% if specs['isOut'] == true  %>
+      include AbstractOut
+      <% end -%>
+
       rates <%= rates.map(&:inspect).join(', ') -%>
       <% unless inputs.empty? %>
-      inputs <%= input_spec.join(', ') %>
+      inputs <%= input_spec.join(', ')
+                  .scan(/(.{1,60})(?:,|$)/m).join(",\n#{ ' ' * 14 }") %>
       <% end -%>
 
     end

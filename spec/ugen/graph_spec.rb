@@ -8,8 +8,7 @@ RSpec.describe Graph do
       end
 
       subject(:graph) do
-        described_class.new(root_ugen, name: :basic,
-                            controls: control_params)
+        described_class.new(root_ugen, :basic, **control_params)
       end
 
       shared_examples_for "has controls" do
@@ -68,10 +67,10 @@ RSpec.describe Graph do
           0, 0, 0, 0, 0, 0 ].pack("C*")
       end
 
-      subject(:graph) { described_class.new(ugen, name: :basic) }
+      subject(:graph) { described_class.new(ugen, :basic) }
 
       it "should encode graph" do
-        expect(graph.encode).to eq(expected)
+        expect(graph).to encode_as(expected)
       end
     end
 
@@ -92,13 +91,30 @@ RSpec.describe Graph do
       end
 
       subject(:graph) do
-        described_class.new(ugen, name: :basic,
-                            controls: { buf: 1, rate: 220 })
+        described_class.new(ugen, :basic, buf: 1, rate: 220)
       end
 
       it "should encode graph" do
-        expect(graph.encode).to eq(expected)
+        expect(graph).to encode_as(expected)
       end
     end
+
+    describe "demo a graph" do
+      let(:ugen) { instance_double("Ugen") }
+    end
+  end
+
+
+  describe "send to server" do
+    let(:ugen) do
+      instance_double("Ugen::Base", input_values: [], name: "SinOsc")
+    end
+
+    let(:server) { spy instance_double("Server") }
+    subject(:graph) { described_class.new(ugen) }
+
+    before { graph.send_to(server) }
+
+    it { expect(server).to have_received(:send_graph).with(graph, nil) }
   end
 end
