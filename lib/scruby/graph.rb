@@ -3,12 +3,13 @@ require "securerandom"
 module Scruby
   class Graph
     include Encode
+    include Equatable
     include PrettyInspectable
 
     attr_reader :name, :root, :nodes, :controls, :constants
 
-    def initialize(root_ugen, name = SecureRandom.uuid, **controls)
-      @name = name
+    def initialize(root_ugen, name = nil, **controls)
+      @name = name || SecureRandom.uuid
       @controls = controls.map &method(:build_control_with_name)
       @nodes = []
       @constants = []
@@ -41,6 +42,19 @@ module Scruby
         raise(KeyError, "control not found (#{name})")
     end
 
+    def node_index(node)
+      nodes.index(node)
+    end
+
+    def visualize
+      Visualize.print(root)
+    end
+
+    def send_to(server, completion_message = nil)
+      server.send_graph(self, completion_message)
+      self
+    end
+
     def encode
       [
         init_stream,
@@ -53,17 +67,14 @@ module Scruby
       ].join
     end
 
-    def send_to(server, completion_message = nil)
-      server.send_graph(self, completion_message)
-      self
-    end
-
-    def visualize
-      Visualize.print(root)
-    end
-
     def inspect
       super(name: name, controls: controls, root: root)
+    end
+
+    protected
+
+    def equatable_state
+      [ name, root.ugen, controls ]
     end
 
     private

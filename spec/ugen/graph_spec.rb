@@ -4,7 +4,7 @@ RSpec.describe Graph do
 
     context "initialize with controls" do
       let(:control_params) do
-        { k_1: 1, k_2: ir(2), k_3: tr(3), k_4: kr(4) }
+        { k_1: 1, k_2: scalar(2), k_3: trigger(3), k_4: control(4) }
       end
 
       subject(:graph) do
@@ -32,7 +32,7 @@ RSpec.describe Graph do
       end
     end
 
-    context "non name is given" do
+    context "no name is given" do
       subject(:graph) do
         described_class.new(root_ugen)
       end
@@ -104,7 +104,6 @@ RSpec.describe Graph do
     end
   end
 
-
   describe "send to server" do
     let(:ugen) do
       instance_double("Ugen::Base", input_values: [], name: "SinOsc")
@@ -116,5 +115,22 @@ RSpec.describe Graph do
     before { graph.send_to(server) }
 
     it { expect(server).to have_received(:send_graph).with(graph, nil) }
+  end
+
+  describe "equality" do
+    let(:graph_a) do
+      Graph.new(Out.ar(0, SinOsc.ar(400) * 5), :simple)
+    end
+
+    let(:graph_b) do
+      Graph.new(Out.ar(0, SinOsc.ar(400) * 5.0), :simple)
+    end
+
+    let(:graph_c) do
+      Graph.new(Out.ar(0, SinOsc.ar(400) * 4.9), :simple)
+    end
+
+    it { expect(graph_a).to eq graph_b }
+    it { expect(graph_a).not_to eq graph_c }
   end
 end

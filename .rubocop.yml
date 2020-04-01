@@ -226,7 +226,7 @@ Metrics/CyclomaticComplexity:
     - app/controllers/concerns/admin_sessions_concern.rb
     - app/controllers/concerns/admin_accounts_concern.rb
 
-Metrics/LineLength:
+Layout/LineLength:
   Description: 'Limit lines to 80 characters.'
   StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#80-character-limits'
   Enabled: true
@@ -262,7 +262,7 @@ Metrics/PerceivedComplexity:
   Description: >-
                  A complexity metric geared towards measuring complexity for a
                  human reader.
-  Enabled: true
+  Enabled: false
   Exclude:
     - app/controllers/concerns/admin_accounts_concern.rb
     - app/controllers/concerns/admin_sessions_concern.rb
@@ -289,7 +289,7 @@ Layout/ArrayAlignment:
                  Align the elements of an array literal if they span more than
                  one line.
   StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#align-multiline-arrays'
-  Enabled: true
+  Enabled: false
 
 Layout/HashAlignment:
   Description: >-
@@ -357,10 +357,6 @@ Style/BlockDelimiters:
                 Prefer {...} over do...end for single-line blocks.
   StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#single-line-blocks'
   Enabled: false
-
-Style/BracesAroundHashParameters:
-  Description: 'Enforce braces style around hash parameters.'
-  Enabled: true
 
 Style/CaseEquality:
   Description: 'Avoid explicit use of the case equality operator(===).'
@@ -651,7 +647,7 @@ Style/ModuleFunction:
 Style/MultilineBlockChain:
   Description: 'Avoid multi-line chains of blocks.'
   StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#single-line-blocks'
-  Enabled: true
+  Enabled: false
 
 Layout/MultilineBlockLayout:
   Description: 'Ensures newlines after multiline block do statements.'
@@ -832,7 +828,7 @@ Style/SelfAssignment:
 Style/Semicolon:
   Description: "Don't use semicolons to terminate expressions."
   StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#no-semicolon'
-  Enabled: true
+  Enabled: false
 
 Style/SignalException:
   Description: 'Checks for proper usage of fail and raise.'
