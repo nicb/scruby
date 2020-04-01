@@ -4,21 +4,16 @@ module Scruby
       include Equatable
       include PrettyInspectable
       include Operations
+      include Utils::PositionalKeywordArgs
 
-      attr_reader :inputs, :channels
 
-      def initialize(*args, rate: :audio, **kwargs)
-        attribute_names = self.class.attributes.keys
-        input_names = self.class.inputs.keys
+      attr_reader :channels
 
-        assigns =
-          self.class.attributes.to_a +
-          self.class.inputs.to_a +
-          (attribute_names + input_names)[0...args.size].zip(args) +
-          kwargs.to_a
+      def initialize(*args, rate: :audio, **kw)
+        defaults = self.class.attributes.merge(self.class.inputs)
 
-        assigns.map do |name, val|
-          send("#{name}=", val.is_a?(Hash) ? val.fetch(rate) : val)
+        positional_keyword_args(defaults, *args, **kw).map do |key, val|
+          send("#{key}=", val.is_a?(Hash) ? val.fetch(rate) : val)
         end
 
         self.rate = rate
@@ -37,20 +32,18 @@ module Scruby
         inputs.values
       end
 
-      # TODO: no specs
       def rate_index
         E_RATES.index(rate)
       end
 
-      # TODO: no specs
       def output_specs #:nodoc:
         [ E_RATES.index(rate) ]
       end
 
-      # TODO: no specs
       def channels_count; 1 end
       def inputs; {} end
       def attributes; {} end
+      def special_index; 0 end
 
       def inspect
         super(rate: rate, **attributes, **inputs)
@@ -60,8 +53,29 @@ module Scruby
         Graph.new(self, **args)
       end
 
-      def play(server, **opts)
-        build_graph.play(server, **opts)
+      def visualize
+        build_graph.visualize
+      end
+
+      def demo(server, **_args)
+        graph = Graph.new(out? ? self : Out.new(0, self))
+
+        Synth.new(graph.name, server).tap do |synth|
+          group = Group.new(server, 1)
+          graph.send_to(server, synth.creation_message(group))
+        end
+      end
+
+      def send_to(server, **args)
+        build_graph(**args).send_to(server)
+      end
+
+      def out?
+        false
+      end
+
+      def ==(other)
+        self.class == other.class && super
       end
 
       protected
@@ -76,6 +90,10 @@ module Scruby
       end
 
       class << self
+        def inherited(base)
+          base.prepend DoneActions
+        end
+
         def rates(*rates)
           return [ *@rates ] if rates.empty?
           @rates = rates.flatten

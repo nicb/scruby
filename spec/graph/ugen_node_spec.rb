@@ -1,29 +1,14 @@
-RSpec.describe Graph::Node do
+RSpec.describe Graph::UgenNode do
   include Scruby
   include Scruby::Ugen
 
-  shared_context "with graph" do
-    let(:graph) { instance_double("Scruby::Graph") }
-
-    before do
-      allow(graph).to receive(:add_node)
-      allow(graph).to receive(:add_constant)
-    end
-  end
-
-  shared_context "with graph constants" do
-    before do
-      allow(graph).to receive(:constants) { constants }
-    end
-  end
-
   describe "inputs" do
-    include_context "with graph"
+    include_context "node with graph"
 
     let(:constants) { [ 440, -1 ] }
     let(:control_names) { %i(k_1 k_2) }
     let(:ugens) { [ Ugen::SinOsc.ar, Ugen::SinOsc.kr ] }
-    let(:root_ugen) do
+    let(:ugen) do
       instance_double("Ugen::Base", input_values: inputs)
     end
 
@@ -33,7 +18,7 @@ RSpec.describe Graph::Node do
       ]
     end
 
-    subject(:node) { described_class.build(graph, root_ugen) }
+    subject(:node) { described_class.build(graph, ugen) }
 
     before do
       allow(graph).to receive(:control_name)
@@ -67,7 +52,7 @@ RSpec.describe Graph::Node do
 
     it "sets nodes" do
       expect(node.nodes)
-        .to eq ugens.map { |u| Graph::Node.build(graph, u) }
+        .to eq ugens.map { |u| Graph::UgenNode.build(graph, u) }
     end
 
     it "sets controls" do
@@ -75,12 +60,27 @@ RSpec.describe Graph::Node do
     end
   end
 
+
+  describe ".index" do
+    let(:ugen) { instance_double("Ugen::Base", input_values: []) }
+    let(:graph) { instance_double("Scruby::Graph") }
+
+    subject(:node) { described_class.build(graph, ugen) }
+
+    before do
+      allow(graph).to receive(:node_index) { 9 }
+    end
+
+    it { expect(node.index).to eq 9 }
+  end
+
+
   describe ".encode" do
     context "control rate" do
-      let(:root_ugen) { Ugen::SinOsc.kr }
+      let(:ugen) { Ugen::SinOsc.kr }
 
-      include_context "with graph"
-      include_context "with graph constants" do
+      include_context "node with graph"
+      include_context "node with graph constants" do
         let(:constants) do
           [ Graph::Constant.new(440),
             Graph::Constant.new(0)
@@ -94,9 +94,9 @@ RSpec.describe Graph::Node do
         ].pack("C*")
       end
 
-      subject(:node) { described_class.build(graph, root_ugen) }
+      subject(:node) { described_class.build(graph, ugen) }
 
-      it { expect(node.encode).to eq(expected) }
+      it { expect(node).to encode_as(expected) }
     end
   end
 end

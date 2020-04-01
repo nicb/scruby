@@ -238,15 +238,33 @@ RSpec.describe Ugen::Base do
       end
     end
 
-    let(:instance) { subclass.ar }
-    it { expect(instance).to eq instance.rate(:audio) }
-    it { expect(instance).not_to eq instance.rate(:control) }
-    it { expect(instance).to eq instance.freq(440) }
-    it { expect(instance).not_to eq instance.freq(220) }
+    context "literal inputs" do
+      let(:instance) { subclass.ar }
+      it { expect(instance).to eq instance.rate(:audio) }
+      it { expect(instance).not_to eq instance.rate(:control) }
+      it { expect(instance).to eq instance.freq(440) }
+      it { expect(instance).not_to eq instance.freq(220) }
+    end
+
+    context "nested ugens" do
+      let(:ugen_a) do
+        Out.ar(0, SinOsc.ar(400) * 5)
+      end
+
+      let(:ugen_b) do
+        Out.ar(0, SinOsc.ar(400) * 5.0)
+      end
+
+      let(:ugen_c) do
+        Out.ar(0, SinOsc.ar(400) * 4.9)
+      end
+
+      it { expect(ugen_a).to eq ugen_b }
+      it { expect(ugen_a).not_to eq ugen_c }
+    end
   end
 
-
-  describe "building graph" do
+  shared_context "simple ugen with graph" do
     subject(:subclass) do
       Class.new(Ugen::Base) do
         rates :audio, :control
@@ -257,19 +275,31 @@ RSpec.describe Ugen::Base do
     let(:instance) { subclass.ar }
     let(:graph) { instance_double("Graph") }
     let(:server) { instance_double("Server") }
-    let(:args) do
-      { a: "simple", b: "something" }
-    end
-
-    it "builds a graph" do
-      allow(Graph).to receive(:new).with(instance, args) { graph }
-      expect(instance.build_graph(**args)).to eq graph
-    end
-
-    it "plays" do
-      allow(Graph).to receive(:new).with(instance) { graph }
-      expect(graph).to receive(:play).with(server, args) { graph }
-      expect(instance.play(server, args)).to eq graph
-    end
   end
+
+
+  describe ".build_graph" do
+    include_context "simple ugen with graph"
+
+    before do
+      allow(Graph).to receive(:new).with(instance, a: 1, b: 2) { graph }
+    end
+
+    it { expect(instance.build_graph(a: 1, b: 2)).to eq graph }
+  end
+
+  # describe ".demo" do
+  #   include_context "simple ugen with graph"
+
+  #   before do
+  #     allow(Graph).to receive(:new).with(instance) { graph }
+  #   end
+
+  #   let(:demo_args) { { duration: 1 } }
+
+  #   it "demo" do
+  #     expect(graph).to receive(:demo).with(**demo_args) { graph }
+  #     expect(instance.demo(server, demo_args)).to eq graph
+  #   end
+  # end
 end

@@ -3,15 +3,17 @@ require "securerandom"
 module Scruby
   class Graph
     include Encode
+    include Equatable
+    include PrettyInspectable
 
     attr_reader :name, :root, :nodes, :controls, :constants
 
-    def initialize(root_ugen, name: nil, controls: {})
+    def initialize(root_ugen, name = nil, **controls)
       @name = name || SecureRandom.uuid
       @controls = controls.map &method(:build_control_with_name)
       @nodes = []
       @constants = []
-      @root = Node.build_root(self, root_ugen)
+      @root = UgenNode.build_root(self, root_ugen)
 
       add_node @root
     end
@@ -27,7 +29,7 @@ module Scruby
         next if nodes.any? { |c| c.ugen.is_a?(Control) }
 
         control = Control.new(rate: :control, control_names: controls)
-        add_node Node.build(self, control)
+        add_node UgenNode.build(self, control)
       end
     end
 
@@ -40,9 +42,22 @@ module Scruby
         raise(KeyError, "control not found (#{name})")
     end
 
+    def node_index(node)
+      nodes.index(node)
+    end
+
+    def visualize
+      Visualize.print(root)
+    end
+
+    def send_to(server, completion_message = nil)
+      server.send_graph(self, completion_message)
+      self
+    end
+
     def encode
       [
-        init_stream(1),
+        init_stream,
         encode_string(name),
         encode_constants,
         encode_control_defaults,
@@ -52,17 +67,20 @@ module Scruby
       ].join
     end
 
-    def visualize
-      Visualize.print(root)
+    def inspect
+      super(name: name, controls: controls, root: root)
     end
 
-    def play(server, out: 0, fade_in: 0.2, position: :head, args: {})
+    protected
+
+    def equatable_state
+      [ name, root.ugen, controls ]
     end
 
     private
 
     def add_node(node)
-      return unless node.is_a?(Node)
+      return unless node.is_a?(UgenNode)
 
       node.inputs.each &method(:add_node)
       nodes.push(node)
